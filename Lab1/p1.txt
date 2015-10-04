@@ -1,0 +1,591 @@
+Script started on Sun 08 Sep 2013 10:30:30 PM CDT
+]0;cs241114@cs:~[cs241114@cs ~]$ sh p1.sh
+printf \\n\\n\\n            #print three blank lines
+
+
+
+cat p1.sh                  #display the shell script file for the program
+#!/bin/bash               #must be first entry in shell script file
+
+set -v                       #turn on echo
+printf \\n\\n\\n            #print three blank lines
+cat p1.sh                  #display the shell script file for the program
+printf \\f                    #issue a form feed (top of a new page)
+cat -b p1.java           #display the source file with line numbers
+:                               #null command
+:
+:
+javac p1.java           #compile the java file
+java p1                    #execute the file from the current directory
+:
+:
+:
+date                        #print the date
+printf \\f                    #issue a form feed (top of a new page)
+cat -b p1.java           #display the source file with line numbers
+     1	/*
+     2	PROGRAM NAME: Program 0, Read Information from File
+     3	PROGRAMMER:   Samuel Jentsch
+     4	CLASS:        CSC 241.001, Fall 2013
+     5	INSTRUCTOR:   Dr. D. Dunn
+     6	DATE STARTED: September 8, 2013
+     7	DUE DATE:     September 9, 2013
+     8	REFERENCES:   Computer Science
+     9	        Data Abstraction & Problem Solving with Java
+    10	  Janet J. Prichard and Frank M. Carrano             
+    11	       Dr. Dunn: assignment information sheet for Lab 1
+
+    12	PROGRAM PURPOSE:
+    13	a. This program reads in bridge hands (cards) from a file. Hands consist of 13 cards. Cards are in the form RANK|SUIT (AS = Ace of Spades).
+    14	b. The program displays the hand in an organized output.
+    15	c. The program calculates the point value of the bridge hand based on the following rules:
+    16	 Ace = 4; King = 3; Queen = 2; Jack = 1;
+    17	 void (no cards present in a suit) = 3; Singleton (1 card in a suit) = 2; Doubleton (2 cards in a suit) = 1;
+    18	 Long suit (5 or more cards in a suit) = 1 point for each card over 5 in number;
+    19	d. The program displays the calculated point value.
+
+    20	VARIABLE DICTIONARY:
+    21	   	CARD_FILE_NAME - string, contains file name for the file containing the hands or cards.
+    22	   
+    23	   	deck - int[][] used to hold cards. 0 - 3 of first index is used for suits, 0 - 12 of second index is used for cards.
+    24	   	hands - ArrayList<String>, used to hold the hands read in line by line as strings from the file.
+    25	   	
+    26	   	SPADES - int, used for SPADES index of deck.
+    27	   	CLUBS - int, used for CLUBS index of deck. 
+    28	   	DIAMONDS - int, used for the DIAMONDS deck.
+    29	   	HEARTS - int, used for HEARTS index of deck.
+    30	   
+    31	   	TWO - int, used to store the index of '2' in the deck.
+    32	   	THREE - int, used to store the index of '3' in the deck.
+    33	   	FOUR - int, used to store the index of '4' in the deck.
+    34		FIVE - int, used to store the index of '5' in the deck.
+    35		SIX - int, used to store the index of '6' in the deck.
+    36		SEVEN - int, used to store the index of '6' in the deck.;
+    37		EIGHT - int, used to store the index of '6' in the deck.
+    38		NINE - int, used to store the index of '6' in the deck.
+    39		TEN - int, used to store the index of '6' in the deck.
+    40		JACK - int, used to store the index of '6' in the deck.
+    41		QUEEN - int, used to store the index of '6' in the deck.
+    42		KING - int, used to store the index of '6' in the deck.
+    43		ACE - int, used to store the index of '6' in the deck.
+
+    44	ADTs:
+    45	   none
+
+    46	FILES USED:
+    47	   p1.dat - a file containing cards in lines corresponding to hands.
+
+
+    48	Test Cases:
+
+    49	Test Case 1:
+    50	Sample Input: 
+    51	  AH TS QH 7D 5C JS 3H KS 9D QC 4H AD 9C
+    52	Sample Output:
+    53	  CLUBS: 5 9 Q
+    54	  DIAMONDS: 7 9 A
+    55	  HEARTS: 3 4 Q A
+    56	  SPADES: 10 J K
+
+    57	  POINTS = 16
+
+    58	Test Case 2:
+    59	Sample Input:
+    60	  7C AD 9C QC TH 2H 8H 3C QH 5H AC TD JD
+    61	Sample Output:
+    62	  CLUBS: 3 7 9 Q A
+    63	  DIAMONDS: T J A
+    64	  HEARTS: 2 5 8 T Q
+    65	  SPADES:
+
+    66	  POINTS = 16
+
+    67	Test Case 3:
+    68	Sample Input:
+    69	   7C AD AD QC TH 2H 8H 3C QH 5H AC TD 6C
+    70	Sample Output:
+    71	  Error detected: Duplicate cards.
+
+    72	Test Case 4:
+    73	Sample Input:
+    74	   AD 9C QC TH 2H 8H 3C QH 5H AC TD JD
+    75	Sample Output: 
+    76	   Error detected: Less than 13 cards.
+
+    77	--------------------------------------------------------------------
+    78	 */
+
+    79	import java.io.*;
+    80	import java.util.*;
+
+    81	public class p1 {
+
+    82		//The file for the hands.
+    83		static final String CARD_FILE_NAME = "../instr/p1.dat";
+
+    84		//The array for holding cards. Size is 52 when initialized.
+    85		static int[][] deck;
+    86		
+    87		//ArrayList that holds strings corresponding to hands of cards. 
+    88		static ArrayList<String> hands;
+    89		
+    90		//Index values for suits.
+    91		static final int SPADES = 0;
+    92		static final int CLUBS = 1;
+    93		static final int DIAMONDS = 2;
+    94		static final int HEARTS = 3;
+
+    95		//Index values for ranks.
+    96		static final int TWO = 0;
+    97		static final int THREE = 1;
+    98		static final int FOUR = 2;
+    99		static final int FIVE = 3;
+   100		static final int SIX = 4;
+   101		static final int SEVEN = 5;
+   102		static final int EIGHT = 6;
+   103		static final int NINE = 7;
+   104		static final int TEN = 8;
+   105		static final int JACK = 9;
+   106		static final int QUEEN = 10;
+   107		static final int KING = 11;
+   108		static final int ACE = 12;
+
+   109		public static void main(String[] args) {
+   110			readHands();
+   111			
+   112			for(int i = 0; i < hands.size(); i++) {
+   113				refreshDeck();
+   114				
+   115				//checkHand returns -1 if the method failed, 0 if the method passed.
+   116				int handPassed = checkHand(hands.get(i), i);
+   117				
+   118				if(handPassed == -1) {
+   119					continue;
+   120				}
+   121				
+   122				displayHand(hands.get(i));
+   123				
+   124				System.out.printf("\n\n\t\tPOINTS = %d\n", evaluateHand());
+   125				System.out.printf("-----------------------------------------------------------------------------------------------------------\n");
+
+   126			}
+   127		}//end main 
+
+   128		public static void refreshDeck() {
+   129			//-----------------------------------------------------------------------------------------------------
+   130			//Refreshes the deck array by initializing it and filling it with 0s. 0 corresponds to an empty space.
+   131			//Precondition: a class variable named deck of type int[][].
+   132			//Postcondition: deck is initialized as int[4][13] and filled with 0s.
+   133			//-----------------------------------------------------------------------------------------------------
+   134			deck = new int[4][13];
+   135			for(int i = 0; i < deck.length; i++) {
+   136				for(int j = 0; j < deck[i].length; j++)
+   137				//0 stands for no card
+   138				deck[i][j] = 0;
+   139			}//end for
+   140		}
+   141		
+   142		public static ArrayList<String> readHands() {
+   143			//---------------------------------------------------------------------------------------------------------------------------------------
+   144			//Reads "hands" of cards in as Strings line by line and store them in an ArrayList.
+   145			//Precondition: a file existing at the location CARD_FILE_NAME containing hands of cards. One line corresponds to a single hand of cards.
+   146			//Postcondition: each line of the file is read and stored as a string in the class variable ArrayList hands. 
+   147			//--------------------------------------------------------------------------------------------------------------------------------------- 
+   148			hands = new ArrayList<String>();
+
+   149			try {
+   150				File cardFile = new File(CARD_FILE_NAME);
+   151				Scanner cardFileReader = new Scanner(cardFile);
+
+   152				while(cardFileReader.hasNextLine()) {
+   153					hands.add(cardFileReader.nextLine());
+   154				}//end while
+   155			}
+   156			catch (FileNotFoundException ex) {
+   157				System.out.print("\nError: File not found.");
+   158			}
+   159			catch(Exception ex) {
+   160				System.out.print("\nError: Something really bad happened.");
+   161			}
+
+   162			return hands;
+   163		}//end void readHands
+
+   164		public static int checkHand(String hand, int line) {
+   165			//------------------------------------------------------------------------------------------------------------------------------------------- 
+   166			//Checks the string hand for input errors. 
+   167			//For a hand to be correct it must conform to the following:
+   168			// -hand.length() == 13
+   169			// -hand must contain no duplicate cards.
+   170			// -hand must contain cards of valid suits and ranks. (Valid Ranks: 2, 3, 4, 5, 6, 7, 8, 9, T, J, Q, K, A) (Valid Suits: C, S, H, D)
+   171			//Preconditions: the variable hand must be an initialized string containing cards (string containing rank and suit) separated by spaces.
+   172			//				 The class variable deck must be available and initialized for use in the method.
+   173			//Postcondition: The cards (substrings of hand) are checked to verify they meet the criteria discussed above. If they fail, the
+   174			//    			 error -1 is returned. If hand passes the criteria 0 is returned. The class variable deck is populated with 1s where cards
+   175			//				 where found, corresponding to their index discovered using the findCardIndex(String index) method.
+   176			//--------------------------------------------------------------------------------------------------------------------------------------------
+
+   177			int returnValue = 0;
+
+   178			String[] cards = hand.split(" ");
+   179			
+   180			//Check if there are less than 13 cards.
+   181			if(cards.length < 13) {
+   182				System.out.printf("\nError: Hand on input line %d contains %d cards. Hands must contain 13 cards.\n", line, cards.length);
+   183				returnValue = -1; 
+   184			} 
+   185			//Check if there are more than 13 cards.
+   186			else if(cards.length > 13) {
+   187				System.out.printf("\nError: Hand on input line %d contains %d cards. Hands must contain 13 cards.\n", line, cards.length);
+   188				returnValue = -1;
+   189			}
+   190			else {
+   191				for(int i = 0; i < cards.length; i++) {
+   192					String card = cards[i];
+   193					
+   194					if(card.length() != 2) {
+   195						//Check if the card has two characters.
+   196						System.out.printf("\nError: Hand on input line %d. Card found missing suit or rank (only 1 character).\n", line);
+   197						returnValue = -1;
+   198						break;
+   199					}
+   200					
+   201					int[] cardIndex = findCardIndex(card);
+   202					if(cardIndex[0] < 0 || cardIndex[1] < 0) {
+   203						//Find the index of the card in the deck. findCardIndex returns a negative value for an invalid card.
+   204						System.out.printf("\nError: Hand on input line %d. Invalid rank/suit.\n", line);
+   205						returnValue = -1;
+   206						break;
+   207					}
+   208					
+   209					if(deck[cardIndex[0]][cardIndex[1]] == 0) {
+   210						//Check for duplicates.
+   211						deck[cardIndex[0]][cardIndex[1]] = 1;
+   212					} 
+   213					else {
+   214						System.out.printf("\nError: Hand on input line %d. Duplicate card.\n", line);
+   215						returnValue = -1;
+   216						break;
+   217					}
+   218					
+   219				}//end for
+   220			}//end else          
+
+   221		return returnValue;
+   222	}//end checkHand
+
+   223	public static int[] findCardIndex(String card) {
+   224		//--------------------------------------------------------------------------------------------------------------------------------------------
+   225		//Find the suit index and rank index corresponding to the two dimensional deck array using two switch statements: one for rank, one for suit.
+   226		//Precondition: a string in the form (RANK)(SUIT) passed as a parameter. Constants defined corresponding to suit and rank indices.
+   227		//Postcondition: the method creates an int[] called arrayIndex with arrayIndex[0] corresponding to the index of the suit, and arrayIndex[1]
+   228	    //				 corresponding to the index of the rank. arrayIndex is returned. Note that a negative rankIndex and/or suitIndex is returned
+   229		//				 if an invalid rank/suit is processed.
+   230		//--------------------------------------------------------------------------------------------------------------------------------------------
+   231		int rankIndex = -1;
+   232		char rank = card.charAt(0);
+
+   233		int rankValue = 0;
+   234		switch(rank) { //Find the rank index based on the character value for rank.
+   235		case '2':
+   236			rankValue = TWO;
+   237			break;
+   238		case '3':
+   239			rankValue = THREE;
+   240			break;
+   241		case '4':
+   242			rankValue = FOUR;
+   243			break;
+   244		case '5':
+   245			rankValue = FIVE;
+   246			break;
+   247		case '6':
+   248			rankValue = SIX;
+   249			break;
+   250		case '7':
+   251			rankValue = SEVEN;
+   252			break;
+   253		case '8':
+   254			rankValue = EIGHT;
+   255			break;
+   256		case '9':
+   257			rankValue = NINE;
+   258			break;
+   259		case 'T':
+   260			rankValue = TEN;
+   261			break;
+   262		case 'J':
+   263			rankValue = JACK;
+   264			break;
+   265		case 'Q':
+   266			rankValue = QUEEN;
+   267			break;
+   268		case 'K':
+   269			rankValue = KING;
+   270			break;
+   271		case 'A':
+   272			rankValue = ACE;
+   273			break;
+   274		default:
+   275			//System.out.printf("\nError: Invalid rank %c,", rank);
+   276			rankValue = -1;
+   277		}//end switch
+
+   278		if(rankValue != -1)
+   279			rankIndex = rankValue;
+   280		
+   281		int suitIndex = -1;
+   282		int suitValue = 0;
+   283		char suit = card.charAt(1);
+   284		switch(suit) { //Find the suit index based on the character value for suit.
+   285		case 'S':
+   286			suitValue = SPADES;
+   287			break;
+   288		case 'C':
+   289			suitValue = CLUBS;
+   290			break;
+   291		case 'D':
+   292			suitValue = DIAMONDS;
+   293			break;
+   294		case 'H':
+   295			suitValue = HEARTS;
+   296			break;
+   297		default:
+   298			//System.out.printf("\nError: Invalid suit %c.", suit);
+   299			suitValue = -1;
+   300		}
+
+   301		if(suitValue != -1)
+   302			suitIndex = suitValue;
+
+   303		int[] arrayIndex = {suitIndex, rankIndex};
+   304		return arrayIndex;
+   305	}
+
+   306	public static void displayHand(String hand) {
+   307		//----------------------------------------------------------------------------------------------------------------------------------------------------
+   308		//This method displays the hand using the deck class variable. Only cards present in the hand are displayed. If a card is present in the deck,
+   309		//a 1 will be present at the deck index. If there is a 1, findCardString(int index) is used to take the card index and return a String for the card
+   310		//corresponding to that specific index.
+   311		//Precondition- Class variable deck initialized and populated with 0s (no card) or 1s (card). Constants corresponding to suit and rank indices.
+   312		//Postcondition- Each suit is printed followed by the cards present in the current hand that are a part of that suit.
+   313		//----------------------------------------------------------------------------------------------------------------------------------------------------
+
+   314		System.out.printf("-----------------------------------------------------------------------------------------------------------\n");
+   315		
+   316		for(int i = 0; i < deck.length; i++) {
+   317			
+   318			//Switch suit based current deck index
+   319			String suit = "";
+   320			switch(i) {
+   321			case SPADES:
+   322				suit = "SPADES";
+   323				break;
+   324			case CLUBS:
+   325				suit = "CLUBS";
+   326				break;
+   327			case DIAMONDS:
+   328				suit = "DIAMONDS";
+   329				break;
+   330			case HEARTS:
+   331				suit = "HEARTS";
+   332				break;
+   333			}//end switch
+   334			
+   335			System.out.format("\n%10s      ", suit);
+   336			
+   337			for(int j = 0; j < deck[i].length; j++) {
+   338				if(deck[i][j] == 1) {
+   339					String cardString = findCardString(j);
+   340					System.out.printf("%s     ", cardString);
+   341				}//end if
+   342			}//end inner for
+   343		}//end outer for
+   344		
+   345	}//end displayHand
+
+   346	public static String findCardString(int index) {
+   347		//------------------------------------------------------------------------------------------------------------
+   348		//This method takes a rank index and finds the String rank using a switch statement utilizing the predefined
+   349		//rank index constants.
+   350		//Precondition: Predefined constants for rank indices. 
+   351		//Post condition: This method returns a String corresponding to the card value based on the card's rank index.
+   352		//------------------------------------------------------------------------------------------------------------
+   353		String cardString = "";
+   354		
+   355		switch(index) {
+   356		case TWO:
+   357			cardString += "2";
+   358			break;
+   359		case THREE:
+   360			cardString += "3";
+   361			break;
+   362		case FOUR:
+   363			cardString += "4";
+   364			break;
+   365		case FIVE:
+   366			cardString += "5";
+   367			break;
+   368		case SIX:
+   369			cardString += "6";
+   370			break;
+   371		case SEVEN:
+   372			cardString += "7";
+   373			break;
+   374		case EIGHT:
+   375			cardString += "8";
+   376			break;
+   377		case NINE:
+   378			cardString += "9";
+   379			break;
+   380		case TEN:
+   381			cardString += "T";
+   382			break;
+   383		case JACK:
+   384			cardString += "J";
+   385			break;
+   386		case QUEEN:
+   387			cardString += "Q";
+   388			break;
+   389		case KING:
+   390			cardString += "K";
+   391			break;
+   392		case ACE:
+   393			cardString += "A";
+   394			break;
+   395		}//end switch
+   396		
+   397		return cardString;
+   398	}
+
+   399	public static int evaluateHand() {
+   400		//----------------------------------------------------------------------------------------------------------
+   401		//This method calculates the value of the hand. It uses switch statements utilizing predefined constants
+   402		//for rank indices and suit indices. It keeps track of the number of cards in each suit to calculate the 
+   403		//point value of Void, Singleton, Doubleton, and Long Suits. A switch statement is used to add point values
+   404		//for card indices corresponding to cards with point values (JACK, QUEEN, KING, ACE).
+   405		//Precondition: Class deck variable initialized with card values (0s and 1s), predefined constants for rank 
+   406		//				and suit indices.
+   407		//Postcondition: Returns the points value calculated.
+   408		//----------------------------------------------------------------------------------------------------------
+   409		
+   410		int[] cardsInSuits = new int[4];
+   411		
+   412		int points = 0;
+   413		for(int i = 0; i < deck.length; i++) {
+   414			for (int j = 0; j < deck[i].length; j++) {
+
+   415				if(deck[i][j] == 1) {
+   416					//There is a card, evaluate the points.
+   417					switch(i) { //Find number of cards in each suit
+   418					case SPADES:
+   419						cardsInSuits[SPADES]++;
+   420						break;
+   421					case CLUBS:
+   422						cardsInSuits[CLUBS]++;
+   423						break;
+   424					case DIAMONDS:
+   425						cardsInSuits[DIAMONDS]++;
+   426						break;
+   427					case HEARTS:
+   428						cardsInSuits[HEARTS]++;
+   429						break;
+   430					default:
+   431						System.out.print("\nERROR: Evaluate Hand");
+   432					}//end switch
+   433					
+   434					switch(j) { //Points for card values
+   435					case JACK:
+   436						points += 1;
+   437						break;
+   438					case QUEEN:
+   439						points += 2;
+   440						break;
+   441					case KING:
+   442						points += 3;
+   443						break;
+   444					case ACE:
+   445						points += 4;
+   446						break;
+   447					}//end switch
+   448				}//end if
+   449			}//end inner for
+   450		}//end outer for
+   451		
+   452		for(int i = 0; i < cardsInSuits.length; i++) {
+   453			if(cardsInSuits[i] == 0) //Void
+   454				points += 3;
+   455			if(cardsInSuits[i] == 1) //Singleton
+   456				points += 2;
+   457			if(cardsInSuits[i] == 2) //Doubleton
+   458				points += 1;
+   459			if(cardsInSuits[i] > 5) //Long suit
+   460				points += cardsInSuits[i] - 5;
+   461		}//end for
+   462		
+   463		return points;
+   464	}//end evaluateHand 
+
+   465	}//end p1
+
+
+:                               #null command
+:
+:
+javac p1.java           #compile the java file
+java p1                    #execute the file from the current directory
+-----------------------------------------------------------------------------------------------------------
+
+    SPADES      A     
+     CLUBS      2     6     T     
+  DIAMONDS      3     T     Q     A     
+    HEARTS      3     5     7     J     K     
+
+		POINTS = 16
+-----------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------
+
+    SPADES      7     K     
+     CLUBS      3     4     6     7     9     Q     A     
+  DIAMONDS      2     4     8     T     
+    HEARTS      
+
+		POINTS = 15
+-----------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------
+
+    SPADES      
+     CLUBS      2     3     4     5     6     7     8     9     T     J     Q     K     A     
+  DIAMONDS      
+    HEARTS      
+
+		POINTS = 27
+-----------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------
+
+    SPADES      2     3     4     8     9     
+     CLUBS      4     T     J     K     
+  DIAMONDS      3     4     
+    HEARTS      5     8     
+
+		POINTS = 6
+-----------------------------------------------------------------------------------------------------------
+
+Error: Hand on input line 4 contains 8 cards. Hands must contain 13 cards.
+
+Error: Hand on input line 5. Invalid rank/suit.
+
+Error: Hand on input line 6 contains 14 cards. Hands must contain 13 cards.
+
+Error: Hand on input line 7. Duplicate card.
+
+Error: Hand on input line 8. Invalid rank/suit.
+:
+:
+:
+date                        #print the date
+Sun Sep  8 22:30:42 CDT 2013
+]0;cs241114@cs:~[cs241114@cs ~]$ exit
+exit
+
+Script done on Sun 08 Sep 2013 10:30:46 PM CDT

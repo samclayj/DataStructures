@@ -1,0 +1,775 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1187\cocoasubrtf390
+{\fonttbl\f0\fnil\fcharset0 Monaco;}
+{\colortbl;\red255\green255\blue255;\red63\green127\blue95;\red127\green0\blue85;\red0\green0\blue192;
+\red42\green0\blue255;\red63\green95\blue191;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720
+
+\f0\fs22 \cf2 /*\cf0 \
+\cf2 PROGRAM NAME: Lab 3\cf0 \
+\cf2 PROGRAMMER:   \ul Samuel\ulnone  \ul Jentsch\cf0 \ulnone \
+\cf2 CLASS:        CSC 241.001, Fall 2013\cf0 \
+\cf2 INSTRUCTOR:   \ul Dr\ulnone . D. \ul Dunn\cf0 \ulnone \
+\cf2 DATE STARTED: September 25, 2013\cf0 \
+\cf2 DUE DATE:     October 2, 2013\cf0 \
+\cf2 REFERENCES:   Computer Science\cf0 \
+\cf2                   Introduction to Java Programming\cf0 \
+\cf2                   Y. \ul Daniel\ulnone  \ul Liang\cf0 \ulnone \
+\cf2               \ul Dr\ulnone . \ul Dunn\ulnone : assignment information sheet\cf0 \
+\
+\cf2 PROGRAM PURPOSE:\cf0 \
+\cf2 a. This program reads a list of company names from a file\cf0 \
+\cf2 	and creates a list of CompanyNodes from the company names.\cf0 \
+\cf2 b. The program then reads in a list of commands from a commands file,\cf0 \
+\cf2 	parses the commands, and calls methods corresponding to the commands.\cf0 \
+\cf2 c. Based on the commands, the program manipulates reference based linked\cf0 \
+\cf2 	lists by adding employees, changing employees, firing employees, etc.\cf0 \
+\
+\cf2 VARIABLE DICTIONARY:\cf0 \
+\cf2    companyHead - CompanyNode, the first CompanyNode in the list.\cf0 \
+\cf2    				  The first node corresponds to the Unemployed company\cf0 \
+\cf2   \cf0 \
+\cf2 ADTs:\cf0 \
+\cf2    List\cf0 \
+\
+\cf2 FILES USED:\cf0 \
+\cf2    p3company.dat - a file containing company names\cf0 \
+\cf2    p3commands.dat - a file containing command to manipulate employees\cf0 \
+\cf2    \cf0 \
+\cf2 Verification:\cf0 \
+\cf2 	Turned in Excel spreadsheet.\cf0 \
+\
+\cf2 ---------------------------------------------------------------------\cf0 \
+\cf2 */\cf0 \
+\
+\pard\pardeftab720
+\cf3 import\cf0  java.util.*;\
+\cf3 import\cf0  java.io.*;\
+\
+\cf3 public\cf0  \cf3 class\cf0  p3 \{\
+	\
+	\cf2 //pointer to the first node in the company list.\cf0 \
+	\cf3 static\cf0  CompanyNode \cf4 companyHead\cf0 ;\
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  main(String[] args) \{\
+		\cf2 //Read in the companies and sort the into a list in\cf0 \
+		\cf2 //alphabetical order.\cf0 \
+		populateCompanyList(\cf3 new\cf0  File(\cf5 "src/p3Company.dat"\cf0 ));\
+		\
+		\cf2 //Add a CompanyNode to the beginning of the list of\cf0 \
+		\cf2 //companies to be used as a placeholder for unemployed\cf0 \
+		\cf2 //persons.\cf0 \
+		addUnemployedCompany();\
+				\
+		runCommandsFromFile(\cf3 new\cf0  File(\cf5 "src/p3commands.dat"\cf0 ));\
+	\}\cf2 //end main\cf0 \
+	\
+	\cf6 /***Input Methods***/\cf0 \
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  runCommandsFromFile(File file) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //Reads commands as strings from the file passed. Passes\cf0 \
+		\cf2 //the command to parseCommand() to be parsed as the \cf0 \
+		\cf2 //commands are read.\cf0 \
+		\cf2 //Preconditions: File object passed as parameter.\cf0 \
+		\cf2 //Postconditions: Commands are read as lines from file and\cf0 \
+		\cf2 //passed to parseCommand() until the entire file is read\cf0 \
+		\cf2 //or parseCommand returns true (signals end).\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		\cf3 try\cf0  \{\
+			Scanner fileReader = \cf3 new\cf0  Scanner(file);\
+			\cf3 boolean\cf0  stopReading = \cf3 false\cf0 ;\
+			\
+			\cf3 while\cf0 (fileReader.hasNextLine() && stopReading == \cf3 false\cf0 ) \{\
+				stopReading = parseCommand(fileReader.nextLine());\
+			\}\cf2 //end while\cf0 \
+		\} \cf3 catch\cf0  (FileNotFoundException e) \{\
+			e.printStackTrace();\
+			System.\cf4 out\cf0 .println(\cf5 "Issue ocurred with commands file."\cf0 );\
+		\}\cf2 //end catch\cf0 \
+	\}\cf2 //end runCommandsFromFile\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 boolean\cf0  parseCommand(String commandLine) \{\
+		\cf2 //-------------------------------------------------------------\cf0 \
+		\cf2 //This method takes a string parameter commandLine, splits\cf0 \
+		\cf2 //it into an array commands[], and calls a method corresponding\cf0 \
+		\cf2 //to commands[0]. If the command called requires parameters,\cf0 \
+		\cf2 //the other indices of commands (the parameters of the command)\cf0 \
+		\cf2 //are passed.\cf0 \
+		\cf2 //Preconditions: commandLine is a nonempty string.\cf0 \
+		\cf2 //Postconditions: a method corresponding to the first word in\cf0 \
+		\cf2 //commandLine is called with appropriate parameters. If the \cf0 \
+		\cf2 //command is not found, the program notifies the user.\cf0 \
+		\cf2 //-------------------------------------------------------------\cf0 \
+		\
+		\cf3 boolean\cf0  shouldEnd = \cf3 false\cf0 ;\
+		\
+		String[] commands = commandLine.split(\cf5 " "\cf0 );\
+		\
+		\
+		String command = commands[0];\
+		command = command.toUpperCase();\
+		\cf3 if\cf0 (command.matches(\cf5 "JOIN"\cf0 )) \{\
+			joinCommand(commands[1], commands[2]);\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "QUIT"\cf0 )) \{\
+			quitCommand(commands[1]);\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "CHANGE"\cf0 )) \{\
+			changeCommand(commands[1], commands[2]);\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "PROMOTE"\cf0 )) \{\
+			promoteCommand(commands[1]);\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "DEMOTE"\cf0 )) \{\
+			demoteCommand(commands[1]);\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "PAYDAY"\cf0 )) \{\
+			paydayCommand();\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "EMPLOYEES"\cf0 )) \{\
+			System.\cf4 out\cf0 .println(\cf5 "*********************************************"\cf0 );\
+			employeesCommand(commands[1]);\
+			System.\cf4 out\cf0 .println(\cf5 "*********************************************"\cf0 );\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "UNEMPLOYED"\cf0 )) \{\
+			System.\cf4 out\cf0 .println(\cf5 "*********************************************"\cf0 );\
+			unemployedCommand();\
+			System.\cf4 out\cf0 .println(\cf5 "*********************************************"\cf0 );\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "DUMP"\cf0 )) \{\
+			System.\cf4 out\cf0 .println(\cf5 "*********************************************"\cf0 );\
+			dumpCommand();\
+			System.\cf4 out\cf0 .println(\cf5 "*********************************************"\cf0 );\
+		\} \cf3 else\cf0  \cf3 if\cf0 (command.matches(\cf5 "END"\cf0 )) \{\
+			shouldEnd = \cf3 true\cf0 ;\
+		\} \cf3 else\cf0  \{\
+			System.\cf4 out\cf0 .println(\cf5 "Unrecognized command."\cf0 );\
+		\}\
+		\
+		\cf3 return\cf0  shouldEnd;\
+	\}\cf2 //end parse command\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  joinCommand(String employeeName, String companyName) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //Takes two strings, employeeName and companyName, as\cf0 \
+		\cf2 //parameters. Uses the methods findCompanyWithName() to get\cf0 \
+		\cf2 //a reference to the CompanyNode with a name matching\cf0 \
+		\cf2 //companyName. If a matching company is found, Unemployed\cf0 \
+		\cf2 //is checked to see if the employee is already created or\cf0 \
+		\cf2 //if a new EmployeeNode should be created with the\cf0 \
+		\cf2 //employeeName passed. The EmployeeNode is then inserted\cf0 \
+		\cf2 //into the company using insertEmployeeInCompany().\cf0 \
+		\cf2 //Preconditions: findCompanyWithName(String companyName),\cf0 \
+		\cf2 //searchUnemployedForEmployeeWithName(String employeeName),\cf0 \
+		\cf2 // and insertEmployeeInCompany(CompanyNode company,\cf0 \
+		\cf2 // EmployeeNode employee) methods defined in class.\cf0 \
+		\cf2 //Postconditions: If a matching company is found, an\cf0 \
+		\cf2 //EmployeeNode is either found in the currently\cf0 \
+		\cf2 //unemployed employees, or created using the name passed.\cf0 \
+		\cf2 //The EmployeeNode is then inserted into the list of \cf0 \
+		\cf2 //employees contained in the company.\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		EmployeeNode newEmployee = \cf3 null\cf0 ;\
+		CompanyNode company = findCompanyWithName(companyName);\
+		\cf3 if\cf0 (company != \cf3 null\cf0 ) \{\
+			\cf2 //Check to see if employee is currently unemployed or a new employee\cf0 \
+			newEmployee = searchUnemployedForEmployeeWithName(employeeName);\
+			\cf3 if\cf0 (newEmployee != \cf3 null\cf0 )\
+				newEmployee.\cf4 next\cf0  = \cf3 null\cf0 ;\
+			\cf3 else\cf0 \
+				newEmployee = \cf3 new\cf0  EmployeeNode(employeeName, \cf3 null\cf0 );\
+			\
+			insertEmployeeInCompany(company, newEmployee);\
+		\}\
+		\cf3 else\cf0 \
+			System.\cf4 out\cf0 .println(\cf5 "Company not found "\cf0  + companyName + \cf5 "."\cf0 );\
+	\}\
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  quitCommand(String employeeName) \{\
+		\cf2 //------------------------------------------------------------\cf0 \
+		\cf2 //This method removes the EmployeeNode matching the string\cf0 \
+		\cf2 //employeeName passed as a parameter from the current\cf0 \
+		\cf2 //company containing it and adds it to the unemployed\cf0 \
+		\cf2 //company.\cf0 \
+		\cf2 //Preconditions: companyHead class variable referencing\cf0 \
+		\cf2 //list of companies. Method deleteAndReturnEmployeeWithName().\cf0 \
+		\cf2 //Postconditions: The EmployeeNode matching employee name is \cf0 \
+		\cf2 //removed from the current company containing it and added\cf0 \
+		\cf2 //to the unemployed company node (companyHead).\cf0 \
+		\cf2 //------------------------------------------------------------\cf0 \
+		\
+		EmployeeNode employee = deleteAndReturnEmployeeWithName(employeeName);\
+		\
+		\cf3 if\cf0 (employee != \cf3 null\cf0 )\
+			addToUnemployed(employee);\
+	\}\cf2 //quit\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  changeCommand(String employeeName, String companyName) \{\
+		\cf2 //-------------------------------------------------------------\cf0 \
+		\cf2 //Takes two strings, employeeName and companyName, as\cf0 \
+		\cf2 //parameters. Uses the method deleteAndReturnEmployeeWithName()\cf0 \
+		\cf2 //to remove the EmployeeNode with a name matching employeeName\cf0 \
+		\cf2 //from its current list and return it. Then uses\cf0 \
+		\cf2 //the method findCompanyWithName() to get a reference to the\cf0 \
+		\cf2 //CompanyNode with a name matching companyName. Finally\cf0 \
+		\cf2 //the method insertEmployeeInCompany() is used to insert\cf0 \
+		\cf2 //the employee in the company.\cf0 \
+		\cf2 //Postconditions: Strings employeeName and companyName passed\cf0 \
+		\cf2 //as parameters. The methods described above must be defined.\cf0 \
+		\cf2 //Preconditions: The EmployeeNode with a name matching \cf0 \
+		\cf2 //employeeName is removed from its current list and inserted\cf0 \
+		\cf2 //into the CompanyNode employee list for the company whose name\cf0 \
+		\cf2 //matches companyName.\cf0 \
+		\cf2 //-------------------------------------------------------------\cf0 \
+		\
+		EmployeeNode employee = deleteAndReturnEmployeeWithName(employeeName);\
+		CompanyNode company = findCompanyWithName(companyName);\
+		\
+		employee.\cf4 next\cf0  = \cf3 null\cf0 ;\
+		insertEmployeeInCompany(company, employee);\
+	\}\cf2 //change\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  promoteCommand(String employeeName) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //Finds an EmployeeNode matching the string employeeName\cf0 \
+		\cf2 //and moves the node up in the list if it is not already\cf0 \
+		\cf2 //the last node.\cf0 \
+		\cf2 //Preconditions: Class variable companyHead. String\cf0 \
+		\cf2 //employeeName passed as string.\cf0 \
+		\cf2 //Postconditions: The EmployeeNode matching employeeName is\cf0 \
+		\cf2 //moved up in the list and the references of the nodes in\cf0 \
+		\cf2 //the list are altered accordingly.If the EmployeeNode was \cf0 \
+		\cf2 //already last, no change occurs. \cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		CompanyNode currentCompany = \cf4 companyHead\cf0 ;\
+		\
+		\cf3 boolean\cf0  found = \cf3 false\cf0 ;\
+		\
+		\cf3 while\cf0 (currentCompany != \cf3 null\cf0  && found == \cf3 false\cf0 ) \{\
+			\
+			EmployeeNode currentEmployee = currentCompany.\cf4 employeeListHead\cf0 ;\
+			EmployeeNode prev = currentEmployee;\
+			\
+			\cf3 if\cf0 (currentEmployee != \cf3 null\cf0  && currentEmployee.\cf4 name\cf0 .matches(employeeName) \
+					&& currentEmployee.\cf4 next\cf0  != \cf3 null\cf0 ) \{\
+				currentCompany.\cf4 employeeListHead\cf0  = currentEmployee.\cf4 next\cf0 ;\
+				currentEmployee.\cf4 next\cf0  = currentCompany.\cf4 employeeListHead\cf0 .\cf4 next\cf0 ;\
+				currentCompany.\cf4 employeeListHead\cf0 .\cf4 next\cf0  = currentEmployee;\
+				found = \cf3 true\cf0 ;\
+			\}\
+			\cf3 while\cf0 (currentEmployee != \cf3 null\cf0  && currentEmployee.\cf4 next\cf0  != \cf3 null\cf0 \
+					&& found == \cf3 false\cf0 ) \{\
+				\cf3 if\cf0 (currentEmployee.\cf4 name\cf0 .matches(employeeName)) \{\
+					EmployeeNode curNext = currentEmployee.\cf4 next\cf0 ;\
+					currentEmployee.\cf4 next\cf0  = curNext.\cf4 next\cf0 ;\
+					prev.\cf4 next\cf0  = curNext;\
+					curNext.\cf4 next\cf0  = currentEmployee;\
+					found = \cf3 true\cf0 ;\
+				\}\
+				prev = currentEmployee;\
+				currentEmployee = currentEmployee.\cf4 next\cf0 ;\
+				\
+			\}\cf2 //end while\cf0 \
+	\
+			currentCompany = currentCompany.\cf4 next\cf0 ;\
+		\}\cf2 //end while\cf0 \
+		\
+		\cf2 //if(!found)\cf0 \
+			\cf2 //System.out.println("Could not find employee with name " + employeeName + ".");\cf0 \
+	\}\cf2 //promote\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  demoteCommand(String employeeName) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //Finds an EmployeeNode matching the string employeeName\cf0 \
+		\cf2 //and moves the node down in the list if it is not already\cf0 \
+		\cf2 //the first node.\cf0 \
+		\cf2 //Preconditions: Class variable companyHead. String\cf0 \
+		\cf2 //employeeName passed as string.\cf0 \
+		\cf2 //Postconditions: The EmployeeNode matching employeeName is\cf0 \
+		\cf2 //moved down in the list and the references of the nodes in\cf0 \
+		\cf2 //the list are altered accordingly.If the EmployeeNode was \cf0 \
+		\cf2 //already first, no change occurs. \cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		CompanyNode currentCompany = \cf4 companyHead\cf0 ;\
+		\
+		\cf3 boolean\cf0  found = \cf3 false\cf0 ;\
+		\
+		\cf3 while\cf0 (currentCompany != \cf3 null\cf0  && found == \cf3 false\cf0 ) \{\
+			\
+			EmployeeNode currentEmployee = currentCompany.\cf4 employeeListHead\cf0 ;\
+			EmployeeNode prev = currentEmployee;\
+			EmployeeNode prevPrev = \cf3 null\cf0 ;\
+			\
+			\cf3 if\cf0 (currentEmployee != \cf3 null\cf0  && currentEmployee.\cf4 name\cf0 .matches(employeeName)) \{\
+				found = \cf3 true\cf0 ;\
+			\}\
+			\cf3 while\cf0 (currentEmployee != \cf3 null\cf0  && found == \cf3 false\cf0 ) \{\
+				\cf3 if\cf0 (currentEmployee.\cf4 name\cf0 .matches(employeeName)) \{\
+					\cf3 if\cf0 (prevPrev != \cf3 null\cf0 )\
+						prevPrev.\cf4 next\cf0  = currentEmployee;\
+					\
+					prev.\cf4 next\cf0  = currentEmployee.\cf4 next\cf0 ;\
+					\
+					currentEmployee.\cf4 next\cf0  = prev;\
+					\
+					\cf3 if\cf0 (prevPrev == \cf3 null\cf0 )\
+						currentCompany.\cf4 employeeListHead\cf0  = currentEmployee;\
+					\
+					found = \cf3 true\cf0 ;\
+				\}\
+				\
+				\cf3 if\cf0 (prev != currentEmployee) \{\
+					prevPrev = prev;\
+				\}\
+				prev = currentEmployee;\
+				currentEmployee = currentEmployee.\cf4 next\cf0 ;\
+			\}\cf2 //end while\cf0 \
+			\
+			currentCompany = currentCompany.\cf4 next\cf0 ;\
+		\}\cf2 //end while\cf0 \
+		\
+		\cf2 //if(!found)\cf0 \
+			\cf2 //System.out.println("Could not find employee with name " + employeeName + ".");\cf0 \
+	\}\cf2 //\ul demote\cf0 \ulnone \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  paydayCommand() \{\
+		\cf2 //-----------------------------------------------------------\cf0 \
+		\cf2 //The companyList and the lists of employees are traversed.\cf0 \
+		\cf2 //As each employee list is traversed, a rank variable is \cf0 \
+		\cf2 //set to  1 and incremented as the new list is traversed.\cf0 \
+		\cf2 //If the company being traversed is the Unemployed company,\cf0 \
+		\cf2 //the amountEarned field of the EmployeeNode is incremented\cf0 \
+		\cf2 //by 50. If the company being traversed is not the Unemployed\cf0 \
+		\cf2 //company, the EmployeeNode amountEarned field is incremented\cf0 \
+		\cf2 //by (1000 * rank).\cf0 \
+		\cf2 //Preconditions: a class variable companyHead referencing\cf0 \
+		\cf2 //a CompanyNode. \cf0 \
+		\cf2 //Postconditions: The amountEarned field of every employee\cf0 \
+		\cf2 //is incremented by 50 if unemployed, or (rank * 1000) if \cf0 \
+		\cf2 //employed.\cf0 \
+		\cf2 //-----------------------------------------------------------\cf0 \
+		\
+		CompanyNode currentCompany = \cf4 companyHead\cf0 ;\
+				\
+		\cf3 while\cf0 (currentCompany != \cf3 null\cf0 ) \{\
+			EmployeeNode currentEmployee = currentCompany.\cf4 employeeListHead\cf0 ;\
+			\
+			\cf3 double\cf0  pay = 0;\
+			\cf3 int\cf0  rank = 1;\
+			\cf3 while\cf0 (currentEmployee != \cf3 null\cf0 ) \{\
+				\
+				\cf2 //change pay rate based on if the employee\cf0 \
+				\cf2 //is unemployed or employed companyHead is the\cf0 \
+				\cf2 //unemployed company\cf0 \
+				\cf3 if\cf0 (currentCompany == \cf4 companyHead\cf0 )\
+					pay = 50;\
+				\cf3 else\cf0 \
+					pay = 1000 * rank;\
+				\
+				currentEmployee.\cf4 amountEarned\cf0  += pay;\
+				rank++;\
+				currentEmployee = currentEmployee.\cf4 next\cf0 ;\
+			\}\cf2 //end while\cf0 \
+			\
+			currentCompany = currentCompany.\cf4 next\cf0 ;\
+		\}\cf2 //end while\cf0 \
+		\
+	\}\cf2 //\ul payday\cf0 \ulnone \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  employeesCommand(String companyName) \{\
+		\cf2 //-----------------------------------------------------------\cf0 \
+		\cf2 //This method takes a string parameter companyName, uses the\cf0 \
+		\cf2 //method findCompanyWithName() to return a reference to the\cf0 \
+		\cf2 //company with a name matching companyName, and prints the \cf0 \
+		\cf2 //employees in the company returned using the \cf0 \
+		\cf2 //printEmployeesInCompany() method if the company returned\cf0 \
+		\cf2 //is not equal to null.\cf0 \
+		\cf2 //Preconditions: A string companyName passed as a parameter.\cf0 \
+		\cf2 //methods findCompanyWithName() and printEmployeesInCompany()\cf0 \
+		\cf2 //defined in the class.\cf0 \
+		\cf2 //Postconditions: The employees present in the CompanyNode\cf0 \
+		\cf2 //with the name companyName are printed to the console. If\cf0 \
+		\cf2 //the company is not found, nothing is displayed.\cf0 \
+		\cf2 //-----------------------------------------------------------\cf0 \
+		\
+		CompanyNode company = findCompanyWithName(companyName);\
+		\cf3 if\cf0 (company != \cf3 null\cf0 ) \
+			printEmployeesInCompany(company);\
+	\}\cf2 //employees\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  unemployedCommand() \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //This method prints out all of the employees present\cf0 \
+		\cf2 //in the Unemployed company (companyHead).\cf0 \
+		\cf2 //Preconditions: Class variable companyHead referring to\cf0 \
+		\cf2 //the unemployed company.\cf0 \
+		\cf2 //Postconditions: The employees present in the Unemployed\cf0 \
+		\cf2 //company are displayed to the console. If there are no\cf0 \
+		\cf2 //employees, a message is displayed to the console.\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		\cf3 if\cf0 (\cf4 companyHead\cf0  != \cf3 null\cf0  && \cf4 companyHead\cf0 .\cf4 employeeListHead\cf0  != \cf3 null\cf0 ) \{\
+			printEmployeesInCompany(\cf4 companyHead\cf0 );\
+		\} \cf3 else\cf0  \{\
+			System.\cf4 out\cf0 .println(\cf5 "There are currently no unemployed workers."\cf0 );\
+		\}\
+	\}\cf2 //unemployed\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  EmployeeNode searchUnemployedForEmployeeWithName(String employeeName) \{\
+		\cf2 //------------------------------------------------------------\cf0 \
+		\cf2 //Searches for an EmployeeNode in the Unemployed company\cf0 \
+		\cf2 //with a name matching the employeeName string passed as a\cf0 \
+		\cf2 //parameter. If a matching employee is found, the object is\cf0 \
+		\cf2 //removed from the Unemployed company employee list and \cf0 \
+		\cf2 //returned.\cf0 \
+		\cf2 //Preconditions: Class variable companyHead referencing the\cf0 \
+		\cf2 //Unemployed company. String employeeName passed as parameter.\cf0 \
+		\cf2 //Postconditions: The EmployeeNode list referenced in the\cf0 \
+		\cf2 //Unemployed company is traversed. If an EmployeeNode with a\cf0 \
+		\cf2 //name matching employeeName is found, the EmployeeNode is\cf0 \
+		\cf2 //returned. If a match is not found, null is returned.\cf0 \
+		\cf2 //------------------------------------------------------------\cf0 \
+		\
+		CompanyNode currentCompany = \cf4 companyHead\cf0 ;\
+		\cf3 boolean\cf0  found = \cf3 false\cf0 ;\
+			EmployeeNode currentEmployee = currentCompany.\cf4 employeeListHead\cf0 ;\
+			EmployeeNode prev = currentEmployee;\
+			\
+			\cf3 if\cf0 (currentEmployee != \cf3 null\cf0  && currentEmployee.\cf4 name\cf0 .matches(employeeName)) \{\
+				\cf2 //Delete first employee if it matches or the list is empty.\cf0 \
+				currentCompany.\cf4 employeeListHead\cf0  = currentCompany.\cf4 employeeListHead\cf0 .\cf4 next\cf0 ;\
+				\
+				\cf2 //Set to null for insertion into unemployed\cf0 \
+				currentEmployee.\cf4 next\cf0  = \cf3 null\cf0 ;\
+				found = \cf3 true\cf0 ;\
+\
+				\cf3 return\cf0  currentEmployee;\
+			\}\
+			\cf3 while\cf0 (currentEmployee != \cf3 null\cf0  && found == \cf3 false\cf0 ) \{\
+				\cf3 if\cf0 (currentEmployee.\cf4 name\cf0 .matches(employeeName)) \{\
+					prev.\cf4 next\cf0  = currentEmployee.\cf4 next\cf0 ;\
+					\
+					found = \cf3 true\cf0 ;\
+					\cf3 return\cf0  currentEmployee;\
+				\}\
+				prev = currentEmployee;\
+				currentEmployee = currentEmployee.\cf4 next\cf0 ;\
+			\}\cf2 //end while\cf0 \
+					\
+		\cf3 return\cf0  \cf3 null\cf0 ;	\
+		\}\cf2 //end searchUnemployedForEmployeeWithName\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  dumpCommand() \{\
+		\cf2 //----------------------------------------------------------\cf0 \
+		\cf2 //This method prints all the employees present in each\cf0 \
+		\cf2 //CompanyNode present in the list referenced by companyHead.\cf0 \
+		\cf2 //The employees in the unemployed company are printed last.\cf0 \
+		\cf2 //Preconditions: A list of CompanyNodes referenced by the\cf0 \
+		\cf2 //class variable companyHead.\cf0 \
+		\cf2 //Postconditions: The employees in each company are printed\cf0 \
+		\cf2 //to the console (employee name and amountEarned). The\cf0 \
+		\cf2 //employees in unemployed are printed last.\cf0 \
+		\cf2 //----------------------------------------------------------\cf0 \
+		\
+		CompanyNode cur = \cf4 companyHead\cf0 .\cf4 next\cf0 ;\
+		\cf3 while\cf0 (cur != \cf3 null\cf0 ) \{\
+			printEmployeesInCompany(cur);\
+			System.\cf4 out\cf0 .println();\
+			cur = cur.\cf4 next\cf0 ;\
+		\}\
+		\
+		System.\cf4 out\cf0 .println();\
+		printEmployeesInCompany(\cf4 companyHead\cf0 );\
+	\}\cf2 //dump\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  endCommand() \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //Postconditions: The program is running.\cf0 \
+		\cf2 //Preconditions: The program is exited with status code 0.\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		System.exit(0);\
+	\}\cf2 //end\cf0 \
+	\
+	\cf6 /********Node Methods********/\cf0 \
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  populateCompanyList(File companyFile) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //Read in the company names from the source file and\cf0 \
+		\cf2 //create new CompanyNode objects based on the names\cf0 \
+		\cf2 //read. Add them to the companyList referenced by\cf0 \
+		\cf2 //companyHead using the insertCompanyInOrder() method.\cf0 \
+		\cf2 //Postconditions: File object passed to method containing\cf0 \
+		\cf2 //strings separated by lines.\cf0 \
+		\cf2 //Preconditions: CompanyNodes are created based on the\cf0 \
+		\cf2 //strings read from the file and inserted into the company\cf0 \
+		\cf2 //list.\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		\cf3 try\cf0  \{\
+			Scanner fileReader = \cf3 new\cf0  Scanner(companyFile);\
+\
+			\cf3 while\cf0 (fileReader.hasNextLine()) \{\
+				CompanyNode newCompanyNode = \cf3 new\cf0  CompanyNode(fileReader.nextLine(), \cf3 null\cf0 );\
+				insertCompanyInOrder(newCompanyNode);\
+			\}\
+\
+		\} \cf3 catch\cf0  (FileNotFoundException e) \{\
+			e.printStackTrace();\
+			System.\cf4 out\cf0 .println(\cf5 "Issue ocurred with company file."\cf0 );\
+		\}\cf2 //end catch\cf0 \
+	\}\cf2 //end populateCompanyList\cf0 \
+\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  insertCompanyInOrder(CompanyNode newNode) \{\
+		\cf2 //----------------------------------------------------------\cf0 \
+		\cf2 //Takes a CompanyNode in as parameter and inserts it in the\cf0 \
+		\cf2 //list of CompanyNodes referenced by the class variable\cf0 \
+		\cf2 //in alphabetical order (A-Z) based on the name data field\cf0 \
+		\cf2 //in CompanyNode. \cf0 \
+		\cf2 //Preconditions: A list of CompanyNodes referenced by the\cf0 \
+		\cf2 //class data field companyHead. A CompanyNode newNode\cf0 \
+		\cf2 //passed as a parameter that is initialized with a value \cf0 \
+		\cf2 //for name (newNode != null && newNode.name != null).\cf0 \
+		\cf2 //Postconditions: The CompanyNode newNode is inserted into\cf0 \
+		\cf2 //the list referenced by companyHead in alphabetical order.\cf0 \
+		\cf2 //----------------------------------------------------------\cf0 \
+		\
+		CompanyNode cur = \cf4 companyHead\cf0 ;\
+		CompanyNode prev = cur;\
+\
+		\cf3 if\cf0 (\cf4 companyHead\cf0  == \cf3 null\cf0  || newNode.\cf4 name\cf0 .compareTo(\cf4 companyHead\cf0 .\cf4 name\cf0 ) < 0) \{\
+			\cf2 //insert at beginning\cf0 \
+			newNode.\cf4 next\cf0  = cur;\
+			\cf4 companyHead\cf0  = newNode;\
+		\} \cf3 else\cf0  \{\cf2 //insert in list\cf0 \
+			\cf3 boolean\cf0  inserted = \cf3 false\cf0 ;\
+			\cf3 while\cf0 (cur != \cf3 null\cf0  && inserted == \cf3 false\cf0 ) \{\
+				\cf2 //insert at position\cf0 \
+				\cf3 if\cf0 (newNode.\cf4 name\cf0 .compareTo(cur.\cf4 name\cf0 ) < 0) \{\
+					\cf2 //insert in list\cf0 \
+					prev.\cf4 next\cf0  = newNode;\
+					newNode.\cf4 next\cf0  = cur;\
+					inserted = \cf3 true\cf0 ;\
+				\}\
+				prev = cur;\
+				cur = cur.\cf4 next\cf0 ;\
+			\}\cf2 //end while\cf0 \
+			\cf3 if\cf0 (inserted == \cf3 false\cf0 ) \{\
+				\cf2 //insert at end of list\cf0 \
+				prev.\cf4 next\cf0  = newNode;\
+			\}\cf2 //end if\cf0 \
+			\
+		\}\cf2 //end else\cf0 \
+		\
+	\}\cf2 //end insertInOrder\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  CompanyNode findCompanyWithName(String companyName) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //Traverse the list of companies and search for one with a\cf0 \
+		\cf2 // name matching companyName. If a match is found, return \cf0 \
+		\cf2 //the reference to the CompanyNode with the matching name. \cf0 \
+		\cf2 //If a match is not found, the method returns null. \cf0 \
+		\cf2 //Postconditions: A class variable called companyHead, \cf0 \
+		\cf2 //referencing the first node CompanyNode in the list. \cf0 \
+		\cf2 //Preconditions: A CompanyNode reference with a name \cf0 \
+		\cf2 //matching companyName is returned if a match is found.\cf0 \
+		\cf2 //Null is returned if a match is not found.\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		CompanyNode cur = \cf4 companyHead\cf0 ;\
+		\cf3 while\cf0 (cur != \cf3 null\cf0 ) \{\
+			\cf3 if\cf0 (cur.\cf4 name\cf0 .matches(companyName))\
+				\cf3 return\cf0  cur;\
+			cur = cur.\cf4 next\cf0 ;\
+		\}\
+		\
+		System.\cf4 out\cf0 .println(\cf5 "Could not find company with name "\cf0  + companyName + \cf5 "."\cf0 );\
+		\cf3 return\cf0  \cf3 null\cf0 ;\
+	\}\cf2 //findCompanyWithName\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  printCompanyList() \{\
+		\cf2 //----------------------------------------------------------\cf0 \
+		\cf2 //Prints the list of CompanyNodes referenced by companyHead.\cf0 \
+		\cf2 //Specifically prints the name data field of CompanyNode.\cf0 \
+		\cf2 //Preconditions: A list of CompanyNodes referenced by the\cf0 \
+		\cf2 //class variable companyHead.\cf0 \
+		\cf2 //Postconditions: The name data field of each CompanyNode\cf0 \
+		\cf2 //present in the list is printed to the console.\cf0 \
+		\cf2 //----------------------------------------------------------\cf0 \
+		\
+		CompanyNode cur = \cf4 companyHead\cf0 ;\
+		\cf3 while\cf0 (cur != \cf3 null\cf0 ) \{\
+			System.\cf4 out\cf0 .println(cur.\cf4 name\cf0 );\
+			cur = cur.\cf4 next\cf0 ;\
+		\}\
+	\}\cf2 //end printCompanyList\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  addUnemployedCompany() \{\
+		\cf2 //----------------------------------------------------------\cf0 \
+		\cf2 //This method initializes and adds a CompanyNode initialized\cf0 \
+		\cf2 //with the name Unemployed to act as a placeholder for\cf0 \
+		\cf2 //unemployed persons.\cf0 \
+		\cf2 //Postconditions: Class variable companyHead.\cf0 \
+		\cf2 //Preconditions: A CompanyNode is created to hold the \cf0 \
+		\cf2 //unemployed employees and added to the beginning of the \cf0 \
+		\cf2 //list referenced by companyHead.\cf0 \
+		\cf2 //----------------------------------------------------------\cf0 \
+		\
+		CompanyNode unemployed = \cf3 new\cf0  CompanyNode(\cf5 "Unemployed"\cf0 , \cf3 null\cf0 );\
+		unemployed.\cf4 next\cf0  = \cf4 companyHead\cf0 ;\
+		\cf4 companyHead\cf0  = unemployed;\
+	\}\cf2 //end addUnemployedCompany\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  addToUnemployed(EmployeeNode employee) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //This method takes an EmployeeNode employee passed as a \cf0 \
+		\cf2 //parameter and adds it to the unemployed company.\cf0 \
+		\cf2 //Note that the unemployed company is represented by\cf0 \
+		\cf2 //companyHead since the unemployed company is always at the\cf0 \
+		\cf2 //beginning of the CompanyNode list. The method sets \cf0 \
+		\cf2 //employee.next to null to prevent issues when the employee\cf0 \
+		\cf2 //is inserted into the unemployed CompanyNode.\cf0 \
+		\cf2 //Postconditions: \cf0 \
+		\cf2 //Preconditions:\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		employee.\cf4 next\cf0  = \cf3 null\cf0 ;\
+		insertEmployeeInCompany(\cf4 companyHead\cf0 , employee);\
+	\}\cf2 //end addToUnemployed\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  insertEmployeeInCompany(CompanyNode company, EmployeeNode employee) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //This method takes a CompanyNode and an EmployeeNode as a \cf0 \
+		\cf2 //parameter. It inserts the EmployeeNode at the beginning\cf0 \
+		 \cf2 //of the EmployeeNode list contained in the CompanyNode.\cf0 \
+		\cf2 //Preconditions: CompanyNode and EmployeeNode passed as\cf0 \
+		\cf2 //parameters. Both must be initialized.\cf0 \
+		\cf2 //Postconditions: The EmployeeNode passed is inserted into\cf0 \
+		\cf2 //the beginning of the employee list contained in the \cf0 \
+		\cf2 //CompanyNode.\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		\cf2 //Add the employee to the beginning of the list to easily\cf0 \
+		\cf2 //maintain a seniority system\cf0 \
+		\cf3 if\cf0 (company.\cf4 employeeListHead\cf0  == \cf3 null\cf0 )\
+			company.\cf4 employeeListHead\cf0  = employee;\
+		\cf3 else\cf0  \{\
+			employee.\cf4 next\cf0  = company.\cf4 employeeListHead\cf0 ;\
+			company.\cf4 employeeListHead\cf0  = employee;\
+		\}\
+	\}\cf2 //end insertEmployeeInCompany\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  EmployeeNode deleteAndReturnEmployeeWithName(String employeeName) \{\
+		\cf2 //---------------------------------------------------------\cf0 \
+		\cf2 //This method searches each list within each CompanyNode\cf0 \
+		\cf2 //contained in the list referenced by companyHead. If an\cf0 \
+		\cf2 //EmployeeNode with a name matching the string employeeName\cf0 \
+		\cf2 //(passed to this method as a parameter) is found, the\cf0 \
+		\cf2 //matching EmployeeNode is removed from the list it is\cf0 \
+		\cf2 //contained in and returned to the caller.\cf0 \
+		\cf2 //Preconditions: Class variable companyHead referencing a\cf0 \
+		\cf2 //list of CompanyNodes.\cf0 \
+		\cf2 //Postconditions: The EmployeeNode with a name matching\cf0 \
+		\cf2 //employee name is removed from its current list and\cf0 \
+		\cf2 //a reference to the matching node is returned. If a\cf0 \
+		\cf2 //matching EmployeeNode is not found, null is returned.\cf0 \
+		\cf2 //---------------------------------------------------------\cf0 \
+		\
+		CompanyNode currentCompany = \cf4 companyHead\cf0 ;\
+		\
+		\cf3 boolean\cf0  found = \cf3 false\cf0 ;\
+		\
+		\cf3 while\cf0 (currentCompany != \cf3 null\cf0  && found == \cf3 false\cf0 ) \{\
+			EmployeeNode currentEmployee = currentCompany.\cf4 employeeListHead\cf0 ;\
+			EmployeeNode prev = currentEmployee;\
+			\
+			\cf3 if\cf0 (currentEmployee != \cf3 null\cf0  && currentEmployee.\cf4 name\cf0 .matches(employeeName)) \{\
+				\cf2 //Delete first employee if it matches or the list is empty.\cf0 \
+				currentCompany.\cf4 employeeListHead\cf0  = currentCompany.\cf4 employeeListHead\cf0 .\cf4 next\cf0 ;\
+				\
+				\cf2 //Set to null for insertion into unemployed\cf0 \
+				currentEmployee.\cf4 next\cf0  = \cf3 null\cf0 ;\
+				found = \cf3 true\cf0 ;\
+\
+				\cf3 return\cf0  currentEmployee;\
+			\}\
+			\cf3 while\cf0 (currentEmployee != \cf3 null\cf0  && found == \cf3 false\cf0 ) \{\
+				\cf3 if\cf0 (currentEmployee.\cf4 name\cf0 .matches(employeeName)) \{\
+					prev.\cf4 next\cf0  = currentEmployee.\cf4 next\cf0 ;\
+					\
+					found = \cf3 true\cf0 ;\
+					\cf3 return\cf0  currentEmployee;\
+				\}\
+				prev = currentEmployee;\
+				currentEmployee = currentEmployee.\cf4 next\cf0 ;\
+			\}\cf2 //end while\cf0 \
+			\
+			currentCompany = currentCompany.\cf4 next\cf0 ;\
+		\}\cf2 //end while\cf0 \
+		\
+		System.\cf4 out\cf0 .println(\cf5 "Could not find employee with name "\cf0  + employeeName + \cf5 "."\cf0 );\
+		\cf3 return\cf0  \cf3 null\cf0 ;\
+	\}\cf2 //deleteAndReturnEmployeeWithName\cf0 \
+	\
+	\cf3 public\cf0  \cf3 static\cf0  \cf3 void\cf0  printEmployeesInCompany(CompanyNode company) \{\
+		\cf2 //-------------------------------------------------------------\cf0 \
+		\cf2 //This method prints the EmployeeNode objects present in the\cf0 \
+		\cf2 //in the EmployeeNode list contained in the CompanyNode company\cf0 \
+		\cf2 //parameter passed. The each  Employee's name and amount earned\cf0 \
+		\cf2 //is displayed below the name of the company. \cf0 \
+		\cf2 //Preconditions: CompanyNode passed by calling method.\cf0 \
+		\cf2 //Postconditions: The company name followed by each employee's\cf0 \
+		\cf2 //-------------------------------------------------------------\cf0 \
+		EmployeeNode currentEmployee = company.\cf4 employeeListHead\cf0 ;\
+		\
+		\cf3 if\cf0 (currentEmployee != \cf3 null\cf0 )\
+			System.\cf4 out\cf0 .println(\cf5 "Employees in "\cf0  + company.\cf4 name\cf0  + \cf5 ": "\cf0 );\
+		\cf3 else\cf0 \
+			System.\cf4 out\cf0 .println(\cf5 "There are no employees in "\cf0  + company.\cf4 name\cf0  + \cf5 "."\cf0 );\
+		\cf3 while\cf0 (currentEmployee != \cf3 null\cf0 ) \{\
+			System.\cf4 out\cf0 .println(\cf5 "\\tEmployee: "\cf0  + currentEmployee.\cf4 name\cf0 );\
+			System.\cf4 out\cf0 .printf(\cf5 "\\t\\tAmount Earned: $%.2f\\n"\cf0 , currentEmployee.\cf4 amountEarned\cf0 );\
+			currentEmployee = currentEmployee.\cf4 next\cf0 ;\
+		\}\
+	\}\cf2 //end printEmployeesInCompany\cf0 \
+	\
+\}\cf2 //end p3\cf0 \
+\
+\
+\cf3 class\cf0  CompanyNode \{\
+	String \cf4 name\cf0 ;\
+	CompanyNode \cf4 next\cf0 ;\
+	\
+	EmployeeNode \cf4 employeeListHead\cf0 ;\
+\
+	\cf3 public\cf0  CompanyNode() \{\
+		\cf2 //Sets CompanyNode data fields to default values.\cf0 \
+		\cf3 this\cf0 .\cf4 name\cf0  = \cf5 ""\cf0 ;\
+		\cf3 this\cf0 .\cf4 next\cf0  = \cf3 null\cf0 ;\
+	\}\
+	\
+	\cf3 public\cf0  CompanyNode(String name, CompanyNode next) \{\
+		\cf2 //Sets data fields to values passed as parameters.\cf0 \
+		\cf3 this\cf0 .\cf4 name\cf0  = name;\
+		\cf3 this\cf0 .\cf4 next\cf0  = next;\
+	\}\
+	\
+\}\cf2 //end CompanyNode\cf0 \
+\
+\cf3 class\cf0  EmployeeNode \{\
+	String \cf4 name\cf0 ;\
+	EmployeeNode \cf4 next\cf0 ;\
+	\cf3 double\cf0  \cf4 amountEarned\cf0 ;\
+	\
+	\cf3 public\cf0  EmployeeNode() \{\
+		\cf2 //Sets EmployeeNode data fields to default values.\cf0 \
+		\cf3 this\cf0 .\cf4 name\cf0  = \cf5 ""\cf0 ;\
+		\cf3 this\cf0 .\cf4 next\cf0  = \cf3 null\cf0 ;\
+		\cf4 amountEarned\cf0  = 0.0;\
+	\}\
+	\
+	\cf3 public\cf0  EmployeeNode(String name, EmployeeNode next) \{\
+		\cf2 //Sets data fields to values passed as parameters.\cf0 \
+		\cf3 this\cf0 .\cf4 name\cf0  = name;\
+		\cf3 this\cf0 .\cf4 next\cf0  = next;\
+		\cf4 amountEarned\cf0  = 0.0;\
+	\}\
+\}\cf2 //end EmployeeNode\cf0 \
+\
+}
